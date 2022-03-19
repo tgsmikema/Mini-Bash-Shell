@@ -43,9 +43,6 @@ int main(int argc, char* argv[]){
 
     printf("ash> ");
 
-    
-
-    
 
     // isatty() returns 1 if input is from stdin, or 0 if input is from file
     // if from stdin, then call read_command_line_from_input() function,
@@ -59,6 +56,6 @@ int main(int argc, char* argv[]){
     }
   
     }
-   
+    
     return 0;
 }
