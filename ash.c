@@ -8,6 +8,11 @@
     upi:    sma148
     SOFTENG 370 Assignment 1 */
 
+/*unused functions/helpers:
+-- this gets the current directory {char *buff = NULL; printf("%s",getcwd(buff,0));}
+
+*/
+
 char* read_command_line_from_input(void){
 
     char *command = NULL;
@@ -37,6 +42,10 @@ int main(int argc, char* argv[]){
     while(1){
 
     printf("ash> ");
+
+    
+
+    
 
     // isatty() returns 1 if input is from stdin, or 0 if input is from file
     // if from stdin, then call read_command_line_from_input() function,
