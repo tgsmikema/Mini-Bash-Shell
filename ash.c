@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 /*  Author: Siqi(Mike) Ma
     ID:     2623324
@@ -10,7 +12,7 @@
     SOFTENG 370 Assignment 1 */
 
 /*unused functions/helpers:
--- this gets the current directory {char *buff = NULL; printf("%s",getcwd(buff,0));}
+
 
 */
 
@@ -19,7 +21,7 @@ char* read_command_line_from_input(void){
     char *command = NULL;
     ssize_t buffsize = 0;
 
-    /* some of below code referenced from https://brennan.io/2015/01/16/write-a-shell-in-c/
+    /* some of below code in this function referenced from https://brennan.io/2015/01/16/write-a-shell-in-c/
     TOTAL REFERENCE: (6) LINES */
 
     //getline() allocate dynamic memory, kind of like malloc,
@@ -82,9 +84,34 @@ char** split_string_into_tokens(char* input_string){
 
 }
 
+int execute_command_line(char** tokens){
+
+    pid_t pid;
+    int status_code = -1;
+
+    pid = fork();
+    if (pid == -1){
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+
+    if (pid == 0){
+        //child process
+        status_code = execvp(tokens[0],tokens);
+    } else {
+        wait(NULL);
+    }
+
+    return status_code;
+}
+
 int main(int argc, char* argv[]){
 
     while(1){
+    
+    //this gets the current directory 
+    char *current_directory = getcwd(current_directory,0);
+
 
     printf("ash> ");
 
@@ -99,7 +126,7 @@ int main(int argc, char* argv[]){
         char **convert = split_string_into_tokens(line);
 
         // developer test: while(*convert != NULL){printf("%s\n",*convert);convert++;}
-        // execvp(convert[0],convert);
+        execute_command_line(convert);
     } else {
 
     }
