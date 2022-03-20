@@ -87,7 +87,7 @@ char** split_string_into_tokens(char* input_string){
 int execute_command_line(char** tokens){
 
     pid_t pid;
-    int status_code = -1;
+    int status_code;
 
     pid = fork();
     if (pid == -1){
@@ -97,12 +97,11 @@ int execute_command_line(char** tokens){
 
     if (pid == 0){
         //child process
-        status_code = execvp(tokens[0],tokens);
+        return(execvp(tokens[0],tokens));
     } else {
         wait(NULL);
     }
 
-    return status_code;
 }
 
 int main(int argc, char* argv[]){
@@ -122,16 +121,20 @@ int main(int argc, char* argv[]){
     if (isatty(STDIN_FILENO) == 1){
         char *line = read_command_line_from_input();
     
-        sleep(1);
         char **convert = split_string_into_tokens(line);
 
         // developer test: while(*convert != NULL){printf("%s\n",*convert);convert++;}
-        execute_command_line(convert);
+       if (execute_command_line(convert) == -1){
+           perror("execution");
+           return(EXIT_FAILURE);
+       };
+      
+    // if open commands from file:
     } else {
 
     }
   
     }
     
-    return 0;
+    return 1;
 }
