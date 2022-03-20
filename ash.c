@@ -11,6 +11,8 @@
     upi:    sma148
     SOFTENG 370 Assignment 1 */
 
+#define DIR_MAX_SIZE 256
+
 /*unused functions/helpers:
 
 
@@ -84,6 +86,15 @@ char** split_string_into_tokens(char* input_string){
 
 }
 
+int execute_cd_command(char** tokens, char* home_directory_path){
+    
+    if (tokens[1] == NULL){
+        // if no parameter specified, change to home address.
+        return(chdir(home_directory_path));
+    }
+    return(chdir(tokens[1]));
+}
+
 int execute_command_line(char** tokens){
 
     pid_t pid;
@@ -106,10 +117,13 @@ int execute_command_line(char** tokens){
 
 int main(int argc, char* argv[]){
 
+    //this gets the current directory - home directory as program runs according to assignment. 
+    char home_directory[DIR_MAX_SIZE];
+    if (getcwd(home_directory,DIR_MAX_SIZE) == NULL){
+        perror("Home Directory Retrival Error");
+    }
+
     while(1){
-    
-    //this gets the current directory 
-    char *current_directory = getcwd(current_directory,0);
 
 
     printf("ash> ");
@@ -121,13 +135,16 @@ int main(int argc, char* argv[]){
     if (isatty(STDIN_FILENO) == 1){
         char *line = read_command_line_from_input();
     
-        char **convert = split_string_into_tokens(line);
+        char **tokens = split_string_into_tokens(line);
 
-        // developer test: while(*convert != NULL){printf("%s\n",*convert);convert++;}
-       if (execute_command_line(convert) == -1){
-           perror("execution");
-           return(EXIT_FAILURE);
-       };
+        // checking if command is cd, if yes carry out cd command otherwise normal commands
+        if (strcmp(tokens[0],"cd") == 0){
+            if ((execute_cd_command(tokens,home_directory)) == -1){
+                perror("Directory Error");
+            }
+        } else if (execute_command_line(tokens) == -1){
+           perror("Execution Error");
+        };
       
     // if open commands from file:
     } else {
