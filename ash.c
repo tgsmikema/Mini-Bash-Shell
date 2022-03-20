@@ -255,7 +255,10 @@ int pipeline_execution(char ***tokens_array)
 int execute(char* line, int is_ampersand,char* home_directory){
     
     char*** tokens_array = convert_piped_string_into_tokens_array(line);
+    
 
+     // checking if command is 'cd', if yes carry out cd command otherwise normal commands
+       
      if (strcmp(**tokens_array,"cd") == 0){
                 if ((execute_cd_command(*tokens_array,home_directory)) == -1){
                     perror("Directory Error");
@@ -278,7 +281,6 @@ int main(int argc, char* argv[]){
     char history_list[HISTORY_LIST_SIZE];
     int last_history_entry_position = 0;
 
-
     //---------------------------------------------------------------------------------------------
     //this gets the current directory - home directory as program runs according to assignment. 
     char home_directory[DIR_MAX_SIZE];
@@ -293,27 +295,20 @@ int main(int argc, char* argv[]){
 
         printf("ash> ");
 
-
         // isatty() returns 1 if input is from stdin, or 0 if input is from file
         // if from stdin, then call read_command_line_from_input() function,
         // otherwise if from file, then call read_command_line_from_file() function.
+
         if (isatty(STDIN_FILENO) == 1){
+
             char *line = read_command_line_from_input_into_string();
 
             //check if the user typed line contains '&' 0 if yes, -1 if no
             is_ampersand = is_command_including_amper(line);
 
+            //EXECUTE COMMAND!!
             execute(line,-1,home_directory);
 
-            char **commands = breakup_piped_string_into_simple_strings(line);
-            //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
-            //printf("%d\n",size_of_star_star(commands));
-            
-            char **tokens = split_string_into_tokens(line);
-
-            // checking if command is 'cd', if yes carry out cd command otherwise normal commands
-           
-        
         // if open commands from file:
         } else {
 
