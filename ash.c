@@ -12,13 +12,24 @@
     SOFTENG 370 Assignment 1 */
 
 #define DIR_MAX_SIZE 256
+#define HISTORY_LIST_SIZE 100
+#define PRINT_HISTORY_SIZE 10
 
 /*unused functions/helpers:
 
 
 */
 
-char* read_command_line_from_input(void){
+int size_of_star_star(char** starstar){
+    int count = 0;
+    while ((*starstar) != NULL){
+        count++;
+        starstar++;
+    }
+    return count;
+}
+
+char* read_command_line_from_input_into_string(void){
 
     char *command = NULL;
     ssize_t buffsize = 0;
@@ -46,6 +57,44 @@ char* read_command_line_from_input(void){
     }
 
     return command;
+}
+
+char** breakup_piped_string_into_simple_strings(char* complex_string){
+    
+    //printf("%s",input_string);
+    const char delim[2] = "|";
+    char* token;
+    
+    // calculate the how many | seperated commmands in the input string.
+    int word_count = 1;
+    for(int i=0;i<strlen(complex_string);i++){
+        if (complex_string[i] == '|'){
+            word_count++;
+        }
+    }
+
+    // allocate enough memory for string array.
+    // (+1) make space for NULL at the end of token. 
+    char **tokens = (char **) malloc((word_count+1) * sizeof(char*));
+
+    // error checking for tokens.
+    if (tokens == NULL){
+        perror("memory allocation error");
+        exit(EXIT_FAILURE);
+    }
+
+    token = strtok(complex_string, delim);
+
+    int i = 0;
+    while(token != NULL) {
+        tokens[i] = token;
+        i++;  
+        token = strtok(NULL, delim);
+   }
+
+    tokens[i] = NULL;
+    return tokens;
+
 }
 
 char** split_string_into_tokens(char* input_string){
@@ -87,6 +136,11 @@ char** split_string_into_tokens(char* input_string){
 }
 
 int execute_cd_command(char** tokens, char* home_directory_path){
+
+    // checking cd command can take maximum 1 argument after 'cd'.
+    if (tokens[2] != NULL){
+        return -1;
+    }
     
     if (tokens[1] == NULL){
         // if no parameter specified, change to home address.
@@ -95,7 +149,8 @@ int execute_cd_command(char** tokens, char* home_directory_path){
     return(chdir(tokens[1]));
 }
 
-int execute_command_line(char** tokens){
+int execute_single_command(char** tokens){
+    //put all | and & functionality in this function so it can be reused by the file input option too.
 
     pid_t pid;
     int status_code;
@@ -103,7 +158,6 @@ int execute_command_line(char** tokens){
     pid = fork();
     if (pid == -1){
         perror("fork");
-        exit(EXIT_FAILURE);
     }
 
     if (pid == 0){
@@ -115,13 +169,31 @@ int execute_command_line(char** tokens){
 
 }
 
+/*This function checks whether command line contains 'pipe' or 'ampersand'
+returns a interger 0 if found. Otherwise returns -1 of not found.*/
+int is_command_line_including_pipe_or_amps(char* command_line_string){
+
+    if(strstr(command_line_string,"|") || strstr(command_line_string,"&")){
+        return 0;
+    } else {
+        return -1;
+    }
+
+}
+
 int main(int argc, char* argv[]){
 
+    char history_list[HISTORY_LIST_SIZE];
+    int last_history_entry_position = 0;
+
+
+    //---------------------------------------------------------------------------------------------
     //this gets the current directory - home directory as program runs according to assignment. 
     char home_directory[DIR_MAX_SIZE];
     if (getcwd(home_directory,DIR_MAX_SIZE) == NULL){
         perror("Home Directory Retrival Error");
     }
+    //---------------------------------------------------------------------------------------------
 
     while(1){
 
@@ -133,16 +205,25 @@ int main(int argc, char* argv[]){
     // if from stdin, then call read_command_line_from_input() function,
     // otherwise if from file, then call read_command_line_from_file() function.
     if (isatty(STDIN_FILENO) == 1){
-        char *line = read_command_line_from_input();
-    
+        char *line = read_command_line_from_input_into_string();
+
+        //char **commands = breakup_piped_string_into_simple_strings(line);
+        //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
+        //printf("%d\n",size_of_star_star(commands));
+        
         char **tokens = split_string_into_tokens(line);
 
-        // checking if command is cd, if yes carry out cd command otherwise normal commands
+        // checking if command is 'cd', if yes carry out cd command otherwise normal commands
         if (strcmp(tokens[0],"cd") == 0){
             if ((execute_cd_command(tokens,home_directory)) == -1){
                 perror("Directory Error");
             }
-        } else if (execute_command_line(tokens) == -1){
+        // checking if command is 'history'.
+        } else if ((strcmp(tokens[0],"history") == 0) || (strcmp(tokens[0],"h") == 0)){
+            
+            printf("HISTORY!!!!\n");
+
+        } else if (execute_single_command(tokens) == -1){
            perror("Execution Error");
         };
       
