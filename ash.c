@@ -62,7 +62,7 @@ char* read_command_line_from_input_into_string(void){
 char** breakup_piped_string_into_simple_strings(char* complex_string){
     
     //printf("%s",input_string);
-    const char delim[2] = "|";
+    const char delim[3] = "|";
     char* token;
     
     // calculate the how many | seperated commmands in the input string.
@@ -100,7 +100,7 @@ char** breakup_piped_string_into_simple_strings(char* complex_string){
 char** split_string_into_tokens(char* input_string){
 
     //printf("%s",input_string);
-    const char delim[2] = " ";
+    const char delim[3] = " &";
     char* token;
     
     // calculate the how many space seperated words in the input string.
@@ -169,16 +169,64 @@ int execute_single_command(char** tokens){
 
 }
 
-/*This function checks whether command line contains 'pipe' or 'ampersand'
+/*This function checks whether command line contains 'pipe'
 returns a interger 0 if found. Otherwise returns -1 of not found.*/
-int is_command_line_including_pipe_or_amps(char* command_line_string){
+int is_command_including_pipe(char* command_line_string){
 
-    if(strstr(command_line_string,"|") || strstr(command_line_string,"&")){
+    if(strstr(command_line_string,"|")){
         return 0;
     } else {
         return -1;
     }
 
+}
+
+/*This function checks whether command line contains 'pipe'
+returns a interger 0 if found. Otherwise returns -1 of not found.*/
+int is_command_including_amper(char* command_line_string){
+    if(strstr(command_line_string,"&")){
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+/* This function is sourced from: https://gist.github.com/aspatic/93e197083b65678a132b9ecee53cfe86*/
+int pipeline_execution(char ***tokens_array)
+{
+	int pipefd[2];
+	pid_t pid;
+	int previous_fd = 0;			
+
+	while (*tokens_array != NULL) {
+		pipe(pipefd);
+        				
+		if ((pid = fork()) == -1) {perror("fork");return -1;}
+
+		else if (pid == 0) {
+            //child process.
+            // replace stdin to previous fdd. (or 0 (read) first iteration)
+			dup2(previous_fd, STDIN_FILENO);
+            // if there are more commands
+			if (*(tokens_array + 1) != NULL) {
+                // then replace stdout with write end of pipe
+				dup2(pipefd[1], STDOUT_FILENO);
+			}
+			close(pipefd[0]);
+			execvp((*tokens_array)[0], *tokens_array);
+            // below will never excute due to execvp hijack the current process within the child process.
+			return -1;
+		} else {
+			wait(NULL); 
+			close(pipefd[1]);
+			previous_fd = pipefd[0];
+			tokens_array++;
+		}
+	}
+}
+
+int execute(char* line, int is_ampersand){
+    
 }
 
 int main(int argc, char* argv[]){
@@ -197,42 +245,46 @@ int main(int argc, char* argv[]){
 
     while(1){
 
+        int is_ampersand;
 
-    printf("ash> ");
+        printf("ash> ");
 
 
-    // isatty() returns 1 if input is from stdin, or 0 if input is from file
-    // if from stdin, then call read_command_line_from_input() function,
-    // otherwise if from file, then call read_command_line_from_file() function.
-    if (isatty(STDIN_FILENO) == 1){
-        char *line = read_command_line_from_input_into_string();
+        // isatty() returns 1 if input is from stdin, or 0 if input is from file
+        // if from stdin, then call read_command_line_from_input() function,
+        // otherwise if from file, then call read_command_line_from_file() function.
+        if (isatty(STDIN_FILENO) == 1){
+            char *line = read_command_line_from_input_into_string();
 
-        //char **commands = breakup_piped_string_into_simple_strings(line);
-        //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
-        //printf("%d\n",size_of_star_star(commands));
-        
-        char **tokens = split_string_into_tokens(line);
+            //check if the user typed line contains '&' 0 if yes, -1 if no
+            is_ampersand = is_command_including_amper(line);
 
-        // checking if command is 'cd', if yes carry out cd command otherwise normal commands
-        if (strcmp(tokens[0],"cd") == 0){
-            if ((execute_cd_command(tokens,home_directory)) == -1){
-                perror("Directory Error");
-            }
-        // checking if command is 'history'.
-        } else if ((strcmp(tokens[0],"history") == 0) || (strcmp(tokens[0],"h") == 0)){
+            char **commands = breakup_piped_string_into_simple_strings(line);
+            //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
+            //printf("%d\n",size_of_star_star(commands));
             
-            printf("HISTORY!!!!\n");
+            char **tokens = split_string_into_tokens(line);
 
-        } else if (execute_single_command(tokens) == -1){
-           perror("Execution Error");
-        };
-      
-    // if open commands from file:
-    } else {
+            // checking if command is 'cd', if yes carry out cd command otherwise normal commands
+            if (strcmp(tokens[0],"cd") == 0){
+                if ((execute_cd_command(tokens,home_directory)) == -1){
+                    perror("Directory Error");
+                }
+            // checking if command is 'history'.
+            } else if ((strcmp(tokens[0],"history") == 0) || (strcmp(tokens[0],"h") == 0)){
+                
+                printf("HISTORY!!!!\n");
 
-    }
-  
-    }
+            } else if (execute_single_command(tokens) == -1){
+            perror("Execution Error");
+            };
+        
+        // if open commands from file:
+        } else {
+
+        }
     
-    return 1;
+    }
+        
+        return 1;
 }
