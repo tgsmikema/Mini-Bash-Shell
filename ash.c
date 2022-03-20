@@ -135,6 +135,33 @@ char** split_string_into_tokens(char* input_string){
 
 }
 
+char*** convert_piped_string_into_tokens_array(char* complex_string){
+
+    char** simple_strings = breakup_piped_string_into_simple_strings(complex_string);
+
+    unsigned long size_of_simple_strings = (unsigned long) size_of_star_star(simple_strings);
+    size_of_simple_strings++;
+
+    char*** tokens_array = (char***) malloc((size_of_simple_strings) * sizeof(char*));
+
+
+    
+
+    for(int i=0; i<size_of_star_star(simple_strings);i++){
+
+        tokens_array[i] = split_string_into_tokens(simple_strings[i]);
+
+    }
+
+    tokens_array[size_of_star_star(simple_strings)] = NULL;
+
+    //printf("%s\n",**(tokens_array+3));
+
+    return tokens_array;
+
+
+}
+
 int execute_cd_command(char** tokens, char* home_directory_path){
 
     // checking cd command can take maximum 1 argument after 'cd'.
@@ -227,6 +254,10 @@ int pipeline_execution(char ***tokens_array)
 
 int execute(char* line, int is_ampersand){
     
+    char*** tokens_array = convert_piped_string_into_tokens_array(line);
+    
+    pipeline_execution(tokens_array);
+
 }
 
 int main(int argc, char* argv[]){
@@ -259,6 +290,8 @@ int main(int argc, char* argv[]){
             //check if the user typed line contains '&' 0 if yes, -1 if no
             is_ampersand = is_command_including_amper(line);
 
+            execute(line,-1);
+/*
             char **commands = breakup_piped_string_into_simple_strings(line);
             //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
             //printf("%d\n",size_of_star_star(commands));
@@ -278,13 +311,13 @@ int main(int argc, char* argv[]){
             } else if (execute_single_command(tokens) == -1){
             perror("Execution Error");
             };
-        
+        */ 
         // if open commands from file:
         } else {
 
         }
     
     }
-        
+       
         return 1;
 }
