@@ -176,7 +176,7 @@ int execute_cd_command(char** tokens, char* home_directory_path){
     return(chdir(tokens[1]));
 }
 
-int execute_single_command(char** tokens){
+/*int execute_single_command(char** tokens){
     //put all | and & functionality in this function so it can be reused by the file input option too.
 
     pid_t pid;
@@ -194,7 +194,7 @@ int execute_single_command(char** tokens){
         wait(NULL);
     }
 
-}
+}*/
 
 /*This function checks whether command line contains 'pipe'
 returns a interger 0 if found. Otherwise returns -1 of not found.*/
@@ -252,11 +252,24 @@ int pipeline_execution(char ***tokens_array)
 	}
 }
 
-int execute(char* line, int is_ampersand){
+int execute(char* line, int is_ampersand,char* home_directory){
     
     char*** tokens_array = convert_piped_string_into_tokens_array(line);
+
+     if (strcmp(**tokens_array,"cd") == 0){
+                if ((execute_cd_command(*tokens_array,home_directory)) == -1){
+                    perror("Directory Error");
+                }
+            // checking if command is 'history'.
+            } else if ((strcmp(**tokens_array,"history") == 0) || (strcmp(**tokens_array,"h") == 0)){
+                
+                printf("HISTORY!!!!\n");
+
+            } else if (pipeline_execution(tokens_array) == -1){
+            perror("Execution Error");
+            };
     
-    pipeline_execution(tokens_array);
+    
 
 }
 
@@ -290,8 +303,8 @@ int main(int argc, char* argv[]){
             //check if the user typed line contains '&' 0 if yes, -1 if no
             is_ampersand = is_command_including_amper(line);
 
-            execute(line,-1);
-/*
+            execute(line,-1,home_directory);
+
             char **commands = breakup_piped_string_into_simple_strings(line);
             //printf("%s\n%s\n%s\n",*commands,*(commands+1),*(commands+2));
             //printf("%d\n",size_of_star_star(commands));
@@ -299,19 +312,8 @@ int main(int argc, char* argv[]){
             char **tokens = split_string_into_tokens(line);
 
             // checking if command is 'cd', if yes carry out cd command otherwise normal commands
-            if (strcmp(tokens[0],"cd") == 0){
-                if ((execute_cd_command(tokens,home_directory)) == -1){
-                    perror("Directory Error");
-                }
-            // checking if command is 'history'.
-            } else if ((strcmp(tokens[0],"history") == 0) || (strcmp(tokens[0],"h") == 0)){
-                
-                printf("HISTORY!!!!\n");
-
-            } else if (execute_single_command(tokens) == -1){
-            perror("Execution Error");
-            };
-        */ 
+           
+        
         // if open commands from file:
         } else {
 
