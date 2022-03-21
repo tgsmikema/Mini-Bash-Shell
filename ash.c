@@ -123,7 +123,7 @@ char **split_string_into_tokens(char *input_string)
 {
 
     // printf("%s",input_string);
-    const char delim[3] = " &";
+    const char delim[10] = " &\t";
     char *token;
 
     // calculate the how many space seperated words in the input string.
@@ -201,7 +201,7 @@ int execute_cd_command(char **tokens, char *home_directory_path)
     return (chdir(tokens[1]));
 }
 
-/*int execute_single_command(char** tokens){
+int execute_single_command(char** tokens){
     //put all | and & functionality in this function so it can be reused by the file input option too.
 
     pid_t pid;
@@ -219,7 +219,7 @@ int execute_cd_command(char **tokens, char *home_directory_path)
         wait(NULL);
     }
 
-}*/
+}
 
 /*This function checks whether command line contains 'pipe'
 returns a interger 0 if found. Otherwise returns -1 of not found.*/
@@ -357,10 +357,9 @@ int execute(char *line, char *home_directory, char **history_list, int *last_his
             strcpy(history_list[*last_history_position - 1], history_list[select_history_number - 1]);
             *last_history_position++;
 
-            char * new_line = strdup(history_list[select_history_number - 1]);
+            char *new_line = strdup(history_list[select_history_number - 1]);
 
             execute(new_line, home_directory, history_list, last_history_position);
-
         }
         else
         {
