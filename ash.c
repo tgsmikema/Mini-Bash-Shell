@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 
         history_list[last_history_position] = strdup(line);
         last_history_position++;
-        //printf("history NO!!!!!!!! %d\n",last_history_position);
+        // printf("history NO!!!!!!!! %d\n",last_history_position);
 
         // this changed line after this function.
         char ***tokens_array = convert_piped_string_into_tokens_array(line);
@@ -420,18 +420,32 @@ int main(int argc, char *argv[])
                 }
 
                 strcpy(history_list[last_history_position - 1], history_list[select_history_number - 1]);
-                //last_history_position++;
+                // last_history_position++;
 
                 char *new_line = strdup(history_list[select_history_number - 1]);
 
-                if (is_command_including_pipe(new_line) == -1){
-                     execute_single_command(split_string_into_tokens(new_line));
-                } else {
+                if (is_command_including_pipe(new_line) == -1)
+                {
+                    if (new_line[0] == 'h')
+                    {
+                        // print history statements
+                        int i = 0;
+                        if (last_history_position > 9)
+                        {
+                            i = last_history_position - 10;
+                        }
+                        for (i; i < last_history_position; i++)
+                        {
+                            printf("     %d: %s\n", i + 1, history_list[i]);
+                        }
+                    }
+                    execute_single_command(split_string_into_tokens(new_line));
+                }
+                else
+                {
                     char ***tokens_array = convert_piped_string_into_tokens_array(new_line);
                     pipeline_execution(tokens_array);
                 }
-
-               
             }
         }
         else
@@ -467,13 +481,11 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    //printf("%d\n%d\n",pid,getppid());
-                    waitpid(pid,&wstatus,WUNTRACED);
+                    // printf("%d\n%d\n",pid,getppid());
+                    waitpid(pid, &wstatus, WUNTRACED);
                 }
             }
         }
-
-        
     }
 
     return 1;
