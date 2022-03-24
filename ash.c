@@ -424,7 +424,14 @@ int main(int argc, char *argv[])
 
                 char *new_line = strdup(history_list[select_history_number - 1]);
 
-                execute_single_command(split_string_into_tokens(new_line));
+                if (is_command_including_pipe(new_line) == -1){
+                     execute_single_command(split_string_into_tokens(new_line));
+                } else {
+                    char ***tokens_array = convert_piped_string_into_tokens_array(new_line);
+                    pipeline_execution(tokens_array);
+                }
+
+               
             }
         }
         else
@@ -439,12 +446,14 @@ int main(int argc, char *argv[])
             if (pid == 0)
             {
 
+                // if single
                 if (num_of_pipe_args == 1)
                 {
                     execvp(*tokens_array[0], *tokens_array);
                     printf("command error: No such file or directory.\n");
                     break;
                 }
+                // if pipeline
                 else
                 {
                     if (pipeline_execution(tokens_array) == -1)
@@ -458,7 +467,8 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    wait(NULL);
+                    //printf("%d\n%d\n",pid,getppid());
+                    waitpid(pid,&wstatus,WUNTRACED);
                 }
             }
         }
