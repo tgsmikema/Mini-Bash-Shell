@@ -80,6 +80,11 @@ char *read_cmd_line_into_string(void)
         ((command)[strlen(command) - 1] = '\0');
     }
 
+    // fix empty command segmentation fault;
+    if ((command)[strlen(command) - 1] == '\0'){
+        command = strdup("aaa");
+    }
+
     return command;
 }
 
