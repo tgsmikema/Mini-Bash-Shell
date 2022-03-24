@@ -16,14 +16,18 @@
 #define HISTORY_STRING_SIZE 100
 #define PRINT_HISTORY_SIZE 10
 
+// Global variables:
+
+int wstatus;
+
 /*unused functions/helpers:
 
 
 */
-void handle_sigtstp(int sig){
+void handle_sigtstp(int sig)
+{
     printf("Stop not allowed\n");
- }
-
+}
 
 int size_of_star_star(char **starstar)
 {
@@ -49,7 +53,6 @@ int size_of_triple_star(char ***triple_star)
 
 char *read_cmd_line_into_string(void)
 {
-
 
     char *command = NULL;
     ssize_t buffsize = 1;
@@ -81,7 +84,8 @@ char *read_cmd_line_into_string(void)
     }
 
     // fix empty command segmentation fault;
-    if ((command)[strlen(command) - 1] == '\0'){
+    if ((command)[strlen(command) - 1] == '\0')
+    {
         command = strdup("aaa");
     }
 
@@ -218,24 +222,28 @@ int execute_cd_command(char **tokens, char *home_directory_path)
     return (chdir(tokens[1]));
 }
 
-int execute_single_command(char** tokens){
-    //put all | and & functionality in this function so it can be reused by the file input option too.
+int execute_single_command(char **tokens)
+{
+    // put all | and & functionality in this function so it can be reused by the file input option too.
 
     pid_t pid;
     int status_code;
 
     pid = fork();
-    if (pid == -1){
+    if (pid == -1)
+    {
         perror("fork");
     }
 
-    if (pid == 0){
-        //child process
-        return(execvp(tokens[0],tokens));
-    } else {
+    if (pid == 0)
+    {
+        // child process
+        return (execvp(tokens[0], tokens));
+    }
+    else
+    {
         wait(NULL);
     }
-
 }
 
 /*This function checks whether command line contains 'pipe'
@@ -271,7 +279,7 @@ int is_command_including_amper(char *command_line_string)
 int pipeline_execution(char ***tokens_array)
 {
     int pipefd[2];
-    pid_t pid;
+    pid_t pid_a;
     int previous_fd = 0;
 
     // printf("2nd - 1: %s\n2nd - 2: %s\n", **(tokens_array+1), *(*(tokens_array+1)));
@@ -285,13 +293,13 @@ int pipeline_execution(char ***tokens_array)
             return -1;
         }
 
-        if ((pid = fork()) == -1)
+        if ((pid_a = fork()) == -1)
         {
             perror("fork");
             return -1;
         }
 
-        else if (pid == 0)
+        else if (pid_a == 0)
         {
             // child process.
             //  replace stdin to previous fdd. (or 0 (read) first iteration)
@@ -303,11 +311,11 @@ int pipeline_execution(char ***tokens_array)
                 dup2(pipefd[1], STDOUT_FILENO);
             }
             close(pipefd[0]);
-            //close(pipefd[0]);
+            // close(pipefd[0]);
             close(pipefd[1]);
             execvp((*tokens_array)[0], *tokens_array);
             // below line will never excute due to execvp hijack the current process within the child process.
-            
+
             return -1;
         }
         else
@@ -320,92 +328,14 @@ int pipeline_execution(char ***tokens_array)
     }
 }
 
-int execute(char *line, char *home_directory, char **history_list, int *last_history_position)
-{
-
-
-    // check if the user typed line contains '&' 0 if yes, -1 if no
-    int is_ampersand = is_command_including_amper(line);
-
-    char ***tokens_array = convert_piped_string_into_tokens_array(line);
-
-    // checking if command is 'cd', if yes carry out cd command otherwise normal commands
-
-    if (strcmp(**tokens_array, "cd") == 0)
-    {
-        if ((execute_cd_command(*tokens_array, home_directory)) == -1)
-        {
-            perror("Directory Error");
-        }
-        // checking if command is 'history'.
-    }
-    else if ((strcmp(**tokens_array, "history") == 0) || (strcmp(**tokens_array, "h") == 0))
-    {
-
-        // get arg size including 'history' and parameters.
-        int args_size = size_of_star_star(*tokens_array);
-
-        if (args_size > 2)
-        {
-            perror("history parameter error");
-            return -1;
-        }
-        else if (args_size == 1)
-        {
-            // print history statements
-            int i = 0;
-            if (*last_history_position > 9)
-            {
-                i = *last_history_position - 10;
-            }
-            for (i; i < *last_history_position; i++)
-            {
-                printf("     %d: %s\n", i + 1, history_list[i]);
-            }
-        }
-        else if (args_size == 2)
-        {
-            int select_history_number = atoi(*(*(tokens_array) + 1));
-
-            if ((select_history_number >= (*last_history_position)) || select_history_number < 1)
-            {
-                perror("History Index Out of Bound");
-                return -1;
-            }
-
-            strcpy(history_list[*last_history_position - 1], history_list[select_history_number - 1]);
-            *last_history_position++;
-
-            char *new_line = strdup(history_list[select_history_number - 1]);
-
-            execute(new_line, home_directory, history_list, last_history_position);
-        }
-        else
-        {
-            perror("history command error");
-            return -1;
-        }
-    }
-    else if (pipeline_execution(tokens_array) == -1)
-    {
-        // perror("Execution Error");
-        printf("No Such File or Directory!\n");
-        return -1;
-    }
-}
-
 int main(int argc, char *argv[])
 {
 
     struct sigaction sa;
     sa.sa_handler = &handle_sigtstp;
 
-
     char *history_list[HISTORY_STRING_SIZE];
     int last_history_position = 0;
-
-    
-   
 
     //---------------------------------------------------------------------------------------------
     // this gets the current directory - home directory as program runs according to assignment.
@@ -419,9 +349,7 @@ int main(int argc, char *argv[])
     while (1)
     {
 
-        sigaction(SIGTSTP,&sa,NULL);
-
-        int is_ampersand;
+        sigaction(SIGTSTP, &sa, NULL);
 
         printf("ash> ");
 
@@ -429,37 +357,113 @@ int main(int argc, char *argv[])
         // if from stdin, then call read_command_line_from_input() function,
         // otherwise if from file, then call read_command_line_from_file() function.
 
-        if (isatty(STDIN_FILENO) == 1)
+        char *line = read_cmd_line_into_string();
+        int is_ampersand = is_command_including_amper(line);
+
+        if (isatty(STDIN_FILENO) != 1)
         {
-            char *line = read_cmd_line_into_string();
-
-            history_list[last_history_position] = strdup(line);
-            last_history_position++;
-
-            // EXECUTE COMMAND!!
-            if (execute(line, home_directory, history_list, &last_history_position) == -1)
-            {
-                break;
-            }
-
-            
+            printf("%s\n", line);
         }
-        // if open commands from file:
+
+        char ***tokens_array = convert_piped_string_into_tokens_array(line);
+
+        int num_of_pipe_args = size_of_triple_star(tokens_array);
+
+        history_list[last_history_position] = strdup(line);
+        last_history_position++;
+
+        // checking if command is 'cd', if yes carry out cd command otherwise normal commands
+
+        if (strcmp(**tokens_array, "cd") == 0)
+        {
+            if ((execute_cd_command(*tokens_array, home_directory)) == -1)
+            {
+                perror("Directory Error");
+            }
+            // checking if command is 'history'.
+        }
+        else if ((strcmp(**tokens_array, "history") == 0) || (strcmp(**tokens_array, "h") == 0))
+        {
+
+            // get arg size including 'history' and parameters.
+            int args_size = size_of_star_star(*tokens_array);
+
+            if (args_size > 2)
+            {
+                perror("history parameter error");
+                return -1;
+            }
+            else if (args_size == 1)
+            {
+                // print history statements
+                int i = 0;
+                if (last_history_position > 9)
+                {
+                    i = last_history_position - 10;
+                }
+                for (i; i < last_history_position; i++)
+                {
+                    printf("     %d: %s\n", i + 1, history_list[i]);
+                }
+            }
+            else if (args_size == 2)
+            {
+                int select_history_number = atoi(*(*(tokens_array) + 1));
+
+                if ((select_history_number >= (last_history_position)) || select_history_number < 1)
+                {
+                    perror("History Index Out of Bound");
+                    return -1;
+                }
+
+                strcpy(history_list[last_history_position - 1], history_list[select_history_number - 1]);
+                last_history_position++;
+
+                char *new_line = strdup(history_list[select_history_number - 1]);
+
+                execute_single_command(split_string_into_tokens(new_line));
+            }
+        }
         else
         {
-            char *line = read_cmd_line_into_string();
-            printf("%s\n",line);
+            pid_t pid;
 
-            history_list[last_history_position] = strdup(line);
-            last_history_position++;
-
-            // EXECUTE COMMAND!!
-            if (execute(line, home_directory, history_list, &last_history_position) == -1)
+            pid = fork();
+            if (pid == -1)
             {
-                break;
+                perror("fork");
             }
-            // sleep(5);
+            if (pid == 0)
+            {
+
+                if (num_of_pipe_args == 1)
+                {
+                    execvp(*tokens_array[0], *tokens_array);
+                    printf("command error: No such file or directory.\n");
+                    break;
+                }
+                else
+                {
+                    if (pipeline_execution(tokens_array) == -1)
+                    {
+                        perror("Command error");
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                if (is_ampersand == -1)
+                {
+                    wait(NULL);
+                }
+            }
         }
+
+        // EXECUTE COMMAND!!
+        // if open commands from file:
+
+        
     }
 
     return 1;
