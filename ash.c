@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 
         history_list[last_history_position] = strdup(line);
         last_history_position++;
-        printf("history NO!!!!!!!! %d\n",last_history_position);
+        //printf("history NO!!!!!!!! %d\n",last_history_position);
 
         // this changed line after this function.
         char ***tokens_array = convert_piped_string_into_tokens_array(line);
@@ -462,9 +462,6 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
-        // EXECUTE COMMAND!!
-        // if open commands from file:
 
         
     }
