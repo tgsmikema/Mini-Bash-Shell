@@ -279,13 +279,15 @@ int is_command_including_amper(char *command_line_string)
 int pipeline_execution(char ***tokens_array)
 {
     int pipefd[2];
-    pid_t pid_a;
+  
     int previous_fd = 0;
 
     // printf("2nd - 1: %s\n2nd - 2: %s\n", **(tokens_array+1), *(*(tokens_array+1)));
 
     while (*tokens_array != NULL)
     {
+
+        pid_t pid_a;
 
         if (pipe(pipefd) == -1)
         {
@@ -320,12 +322,18 @@ int pipeline_execution(char ***tokens_array)
         }
         else
         {
-            wait(NULL);
+            waitpid(pid_a,&wstatus,WUNTRACED);
             close(pipefd[1]);
             previous_fd = pipefd[0];
-            *tokens_array++;
+            tokens_array++;
+            
+            //printf("%s\n",**tokens_array);
         }
+        
     }
+    execvp(**tokens_array,*tokens_array);
+
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -470,10 +478,13 @@ int main(int argc, char *argv[])
                 // if pipeline
                 else
                 {
-                    if (pipeline_execution(tokens_array) == -1)
+                    int pline_status = pipeline_execution(tokens_array);
+                    
+                    if (pline_status == -1)
                     {
                         perror("Command error");
                         break;
+                        
                     }
                 }
             }
@@ -481,11 +492,14 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    // printf("%d\n%d\n",pid,getppid());
-                    waitpid(pid, &wstatus, WUNTRACED);
+                    //printf("%d\n%d\n",pid,getppid());
+                    waitpid(pid, &wstatus,WUNTRACED);
+                    //kill(pid, SIGKILL);
+                    
                 }
             }
         }
+
     }
 
     return 1;
