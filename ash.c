@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <signal.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -19,6 +20,10 @@
 
 
 */
+void handle_sigtstp(int sig){
+    printf("Stop not allowed\n");
+ }
+
 
 int size_of_star_star(char **starstar)
 {
@@ -42,8 +47,9 @@ int size_of_triple_star(char ***triple_star)
     return count;
 }
 
-char *read_command_line_from_input_into_string(void)
+char *read_cmd_line_into_string(void)
 {
+
 
     char *command = NULL;
     ssize_t buffsize = 1;
@@ -286,10 +292,11 @@ int pipeline_execution(char ***tokens_array)
                 dup2(pipefd[1], STDOUT_FILENO);
             }
             close(pipefd[0]);
+            //close(pipefd[0]);
+            close(pipefd[1]);
             execvp((*tokens_array)[0], *tokens_array);
             // below line will never excute due to execvp hijack the current process within the child process.
-            close(pipefd[0]);
-            close(pipefd[1]);
+            
             return -1;
         }
         else
@@ -304,6 +311,7 @@ int pipeline_execution(char ***tokens_array)
 
 int execute(char *line, char *home_directory, char **history_list, int *last_history_position)
 {
+
 
     // check if the user typed line contains '&' 0 if yes, -1 if no
     int is_ampersand = is_command_including_amper(line);
@@ -378,8 +386,15 @@ int execute(char *line, char *home_directory, char **history_list, int *last_his
 int main(int argc, char *argv[])
 {
 
+    struct sigaction sa;
+    sa.sa_handler = &handle_sigtstp;
+
+
     char *history_list[HISTORY_STRING_SIZE];
     int last_history_position = 0;
+
+    
+   
 
     //---------------------------------------------------------------------------------------------
     // this gets the current directory - home directory as program runs according to assignment.
@@ -393,6 +408,8 @@ int main(int argc, char *argv[])
     while (1)
     {
 
+        sigaction(SIGTSTP,&sa,NULL);
+
         int is_ampersand;
 
         printf("ash> ");
@@ -403,7 +420,7 @@ int main(int argc, char *argv[])
 
         if (isatty(STDIN_FILENO) == 1)
         {
-            char *line = read_command_line_from_input_into_string();
+            char *line = read_cmd_line_into_string();
 
             history_list[last_history_position] = strdup(line);
             last_history_position++;
@@ -414,10 +431,22 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            // if open commands from file:
+            
         }
+        // if open commands from file:
         else
         {
+            char *line = read_cmd_line_into_string();
+            printf("%s\n",line);
+
+            history_list[last_history_position] = strdup(line);
+            last_history_position++;
+
+            // EXECUTE COMMAND!!
+            if (execute(line, home_directory, history_list, &last_history_position) == -1)
+            {
+                break;
+            }
             // sleep(5);
         }
     }
