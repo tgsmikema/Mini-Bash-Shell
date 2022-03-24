@@ -334,7 +334,8 @@ int main(int argc, char *argv[])
     struct sigaction sa;
     sa.sa_handler = &handle_sigtstp;
 
-    char *history_list[HISTORY_STRING_SIZE];
+    char **history_list = (char **)malloc((100) * sizeof(char *));
+
     int last_history_position = 0;
 
     //---------------------------------------------------------------------------------------------
@@ -365,12 +366,14 @@ int main(int argc, char *argv[])
             printf("%s\n", line);
         }
 
+        history_list[last_history_position] = strdup(line);
+        last_history_position++;
+        printf("history NO!!!!!!!! %d\n",last_history_position);
+
+        // this changed line after this function.
         char ***tokens_array = convert_piped_string_into_tokens_array(line);
 
         int num_of_pipe_args = size_of_triple_star(tokens_array);
-
-        history_list[last_history_position] = strdup(line);
-        last_history_position++;
 
         // checking if command is 'cd', if yes carry out cd command otherwise normal commands
 
@@ -391,7 +394,7 @@ int main(int argc, char *argv[])
             if (args_size > 2)
             {
                 perror("history parameter error");
-                return -1;
+                continue;
             }
             else if (args_size == 1)
             {
@@ -413,11 +416,11 @@ int main(int argc, char *argv[])
                 if ((select_history_number >= (last_history_position)) || select_history_number < 1)
                 {
                     perror("History Index Out of Bound");
-                    return -1;
+                    continue;
                 }
 
                 strcpy(history_list[last_history_position - 1], history_list[select_history_number - 1]);
-                last_history_position++;
+                //last_history_position++;
 
                 char *new_line = strdup(history_list[select_history_number - 1]);
 
