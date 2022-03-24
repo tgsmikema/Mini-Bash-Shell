@@ -155,6 +155,12 @@ char **split_string_into_tokens(char *input_string)
 
     token = strtok(input_string, delim);
 
+    // checking if token is started with empty string, then insert arbitraty string to show user warning message.
+    if (token == NULL)
+    {
+        token = strdup("Please Enter a VALID Input!!");
+    }
+
     int i = 0;
     while (token != NULL)
     {
