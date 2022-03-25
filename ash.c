@@ -279,7 +279,7 @@ int is_command_including_amper(char *command_line_string)
 int pipeline_execution(char ***tokens_array)
 {
     int pipefd[2];
-  
+
     int previous_fd = 0;
 
     // printf("2nd - 1: %s\n2nd - 2: %s\n", **(tokens_array+1), *(*(tokens_array+1)));
@@ -322,16 +322,15 @@ int pipeline_execution(char ***tokens_array)
         }
         else
         {
-            waitpid(pid_a,&wstatus,WUNTRACED);
+            waitpid(pid_a, &wstatus, WUNTRACED);
             close(pipefd[1]);
             previous_fd = pipefd[0];
             tokens_array++;
-            
-            //printf("%s\n",**tokens_array);
+
+            // printf("%s\n",**tokens_array);
         }
-        
     }
-    execvp(**tokens_array,*tokens_array);
+    execvp(**tokens_array, *tokens_array);
 
     return 0;
 }
@@ -341,6 +340,7 @@ int main(int argc, char *argv[])
 
     struct sigaction sa;
     sa.sa_handler = &handle_sigtstp;
+    sa.sa_flags = SA_RESTART;
 
     char **history_list = (char **)malloc((100) * sizeof(char *));
 
@@ -358,9 +358,12 @@ int main(int argc, char *argv[])
     while (1)
     {
 
-        sigaction(SIGTSTP, &sa, NULL);
+        
 
         printf("ash> ");
+
+        sigaction(SIGTSTP, &sa, NULL);
+        
 
         // isatty() returns 1 if input is from stdin, or 0 if input is from file
         // if from stdin, then call read_command_line_from_input() function,
@@ -368,6 +371,8 @@ int main(int argc, char *argv[])
 
         char *line = read_cmd_line_into_string();
         int is_ampersand = is_command_including_amper(line);
+
+       
 
         if (isatty(STDIN_FILENO) != 1)
         {
@@ -452,7 +457,30 @@ int main(int argc, char *argv[])
                 else
                 {
                     char ***tokens_array = convert_piped_string_into_tokens_array(new_line);
-                    pipeline_execution(tokens_array);
+                    pid_t pid_h;
+
+                    pid_h = fork();
+                    if (pid_h == -1)
+                    {
+                        perror("fork");
+                    }
+                    if (pid_h == 0)
+                    {
+                        if (pipeline_execution(tokens_array) == -1)
+                        {
+                            perror("Command error");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (is_ampersand == -1)
+                        {
+                            // printf("%d\n%d\n",pid,getppid());
+                            waitpid(pid_h, &wstatus, WUNTRACED);
+                            // kill(pid, SIGKILL);
+                        }
+                    }
                 }
             }
         }
@@ -479,12 +507,11 @@ int main(int argc, char *argv[])
                 else
                 {
                     int pline_status = pipeline_execution(tokens_array);
-                    
+
                     if (pline_status == -1)
                     {
                         perror("Command error");
                         break;
-                        
                     }
                 }
             }
@@ -492,15 +519,15 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    //printf("%d\n%d\n",pid,getppid());
-                    waitpid(pid, &wstatus,WUNTRACED);
-                    //kill(pid, SIGKILL);
-                    
+                    // printf("%d\n%d\n",pid,getppid());
+                    waitpid(pid, &wstatus, WUNTRACED);
+                    // printf("status: %d\n", wstatus);
+                    // kill(pid, SIGKILL);
+                   
                 }
+
             }
         }
-
     }
-
     return 1;
 }
