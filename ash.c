@@ -20,12 +20,73 @@
 
 int wstatus;
 
+typedef struct Job
+{
+    int job_id;
+    pid_t pid_j;
+    char *job_command;
+    char job_status;
+    struct Job *next;
+} Job;
 
+int last_job_id = 1;
 
-/*unused functions/helpers:
+//------------------------------------------------------------------------------------------------------------
+int append_end_list(Job** root, int j_id, pid_t p, char *j_command, char j_status)
+{
+    Job *new_job = malloc(sizeof(Job));
+    if (new_job == NULL)
+    {
+        return -1;
+    }
+    new_job->next = NULL;
+    new_job->job_id = j_id;
+    new_job->pid_j = p;
+    new_job->job_command = j_command;
+    new_job->job_status = j_status;
 
+    // checking if no root
+    if (*root == NULL)
+    {
+        *root = new_job;
+        return 0;
+    }
+    Job *current = *root;
+    while (current->next != NULL)
+    {
+        current = current->next;
+    }
+    current->next = new_job;
+}
 
-*/
+int print_linked_list(Job **root)
+{
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        printf("\njob_id = %d\tpid_j = %d\tjob_command = %s\tjob_status = %c\n", current->job_id, (int)current->pid_j, current->job_command, current->job_status);
+    }
+}
+
+int remove_job_by_id(Job** root, int j_id){
+    if (*root == NULL) {
+        return -1;
+    }
+
+    if ((*root)->job_id == j_id){
+        Job* to_delete = *root;
+        *root = (*root)->next;
+        return 0;
+    }
+
+    for(Job* current = *root; current->next != NULL; current = current->next){
+        if (current->next->job_id == j_id){
+            Job* to_delete = current->next;
+            current->next = current->next->next;
+            return 0;
+        }
+    }
+}
+
 void handle_sigtstp(int sig)
 {
     printf("Stop not allowed\n");
@@ -332,13 +393,14 @@ int pipeline_execution(char ***tokens_array)
             // printf("%s\n",**tokens_array);
         }
     }
-    //execvp(**tokens_array, *tokens_array);
+    // execvp(**tokens_array, *tokens_array);
     exit(0);
     return 0;
 }
 
 /*This function is refered from the status.c file shared on the tutorial*/
-char get_status_of_process(pid_t me){
+char get_status_of_process(pid_t me)
+{
 
     char c;
     char pidtext[10];
@@ -349,12 +411,12 @@ char get_status_of_process(pid_t me){
     strcpy(procfilename, "/proc/");
     strcat(procfilename, pidtext);
     strcat(procfilename, "/stat");
-    //printf("The status file is %s\n", procfilename);
+    // printf("The status file is %s\n", procfilename);
     procfile = fopen(procfilename, "r");
     if (procfile == NULL)
     {
         perror("Failed to open file");
-        //exit(EXIT_FAILURE);
+        // exit(EXIT_FAILURE);
     }
     do
     {
@@ -362,7 +424,7 @@ char get_status_of_process(pid_t me){
     } while (c != ')');
     fgetc(procfile);
     c = fgetc(procfile);
-    //printf("The status of this process is %c\n", c);
+    // printf("The status of this process is %c\n", c);
     fclose(procfile);
 
     return c;
@@ -388,6 +450,14 @@ int main(int argc, char *argv[])
     }
     //---------------------------------------------------------------------------------------------
 
+    // initialise empty linked list.
+    Job *root = NULL;
+    //append_end_list(&root,1,2,"hello",'C');
+    //append_end_list(&root,2,3333,"hssssssello",'C');
+    //remove_job_by_id(&root,2);
+    //print_linked_list(&root);
+
+
     while (1)
     {
 
@@ -404,7 +474,10 @@ int main(int argc, char *argv[])
 
         if (isatty(STDIN_FILENO) != 1)
         {
+
             printf("%s\n", line);
+            // if(feof(STDIN_FILENO)){
+            // }
         }
 
         history_list[last_history_position] = strdup(line);
@@ -415,7 +488,7 @@ int main(int argc, char *argv[])
         char ***tokens_array = convert_piped_string_into_tokens_array(line);
 
         int num_of_pipe_args = size_of_triple_star(tokens_array);
-        
+
         // checking if command is 'cd', if yes carry out cd command otherwise normal commands ------------------
 
         if (strcmp(**tokens_array, "cd") == 0)
@@ -549,18 +622,20 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    printf("status: %c\n",get_status_of_process(pid));
+                    // printf("status: %c\n",get_status_of_process(pid));
 
                     // printf("%d\n",pid);
                     waitpid(pid, &wstatus, WUNTRACED);
-                    printf("status: %d\n", wstatus);
-                } else {
-                    printf("status: %c\n",get_status_of_process(pid));
+                    // printf("status: %d\n", wstatus);
+                }
+                else
+                {
+                    // printf("status: %c\n",get_status_of_process(pid));
                 }
             }
         }
-        //kill zombie processes
-        //signal(SIGCHLD, SIG_IGN);
+        // kill zombie processes
+        // signal(SIGCHLD, SIG_IGN);
     }
     return 1;
 }
