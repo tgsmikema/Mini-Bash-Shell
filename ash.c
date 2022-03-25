@@ -87,6 +87,26 @@ int remove_job_by_id(Job** root, int j_id){
     }
 }
 
+int remove_job_by_pid(Job** root, pid_t p){
+     if (*root == NULL) {
+        return -1;
+    }
+
+    if ((*root)->pid_j == p){
+        Job* to_delete = *root;
+        *root = (*root)->next;
+        return 0;
+    }
+
+    for(Job* current = *root; current->next != NULL; current = current->next){
+        if (current->next->pid_j == p){
+            Job* to_delete = current->next;
+            current->next = current->next->next;
+            return 0;
+        }
+    }
+}
+
 void handle_sigtstp(int sig)
 {
     printf("Stop not allowed\n");
@@ -455,6 +475,7 @@ int main(int argc, char *argv[])
     //append_end_list(&root,1,2,"hello",'C');
     //append_end_list(&root,2,3333,"hssssssello",'C');
     //remove_job_by_id(&root,2);
+    //remove_job_by_pid(&root,3333);
     //print_linked_list(&root);
 
 
