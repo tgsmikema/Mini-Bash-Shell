@@ -16,6 +16,10 @@
 #define HISTORY_STRING_SIZE 100
 #define PRINT_HISTORY_SIZE 10
 
+#define FG 1
+#define BG 2
+#define KILL 3
+
 /*function discliamers!*/
 
 char get_status_of_process(pid_t me);
@@ -128,6 +132,58 @@ int remove_job_by_pid(Job **root, pid_t p)
             return 0;
         }
     }
+}
+
+pid_t find_process_id_with_job_id(Job **root, int j)
+{
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        if (current->job_id == j)
+        {
+            return current->pid_j;
+        }
+    }
+    return -1;
+}
+
+char *find_command_with_job_id(Job **root, int j)
+{
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        if (current->job_id == j)
+        {
+            return current->job_command;
+        }
+    }
+    return NULL;
+}
+
+int is_job_list_have_stopped_process(Job **root)
+{
+
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        if (current->job_status == 'T')
+        {
+            return 0;
+        }
+    }
+    return -1;
+}
+
+int find_job_id_of_last_stopped(Job **root)
+{
+    int job_num = -1;
+
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        if (current->job_status == 'T')
+        {
+            job_num = current->job_id;
+        }
+    }
+
+    return job_num;
 }
 
 void handle_sigtstp(int sig)
@@ -586,6 +642,26 @@ int main(int argc, char *argv[])
         {
             execute_job_command(&root);
         }
+        else if (strcmp(**tokens_array, "fg") == 0)
+        {
+            //-------------------------------------------------------------------------------
+            int j_id = find_job_id_of_last_stopped(&root);
+            pid_t curr = (find_process_id_with_job_id(&root, j_id));
+            char *com = find_command_with_job_id(&root, j_id);
+            int status;
+            kill(curr, SIGCONT);
+            w = waitpid(curr, &status, WUNTRACED);
+            if (w == curr && w != -1)
+            {
+                if (WIFEXITED(status))
+                {
+
+                    printf("[%d] <Done>  %s\n", j_id, com);
+                    remove_job_by_id(&root, j_id);
+                }
+            }
+            //-------------------------------------------------------------------------------
+        }
 
         else if (strcmp(**tokens_array, "cd") == 0)
         {
@@ -729,16 +805,14 @@ int main(int argc, char *argv[])
 
                     waitpid(pid, &wstatus, WUNTRACED);
 
-                    if(WIFSTOPPED(wstatus)){
-                    printf("\n[%d]\t%d\n", last_job_id, current_child_pid);
-
-                    // add job to job list
-
-                    append_end_list(&root, last_job_id, current_child_pid, line2, get_status_of_process(current_child_pid));
-
-                    // increament the last job number
-                    last_job_id++;
-                    // printf("status: %d\n", wstatus);
+                    if (WIFSTOPPED(wstatus))
+                    {
+                        printf("\n[%d]\t%d\n", last_job_id, current_child_pid);
+                        // add job to job list
+                        append_end_list(&root, last_job_id, current_child_pid, line2, get_status_of_process(current_child_pid));
+                        // increament the last job number
+                        last_job_id++;
+                        // printf("status: %d\n", wstatus);
                     }
                 }
                 // have ampersand!
@@ -769,7 +843,7 @@ int main(int argc, char *argv[])
             {
                 perror("waitpid");
             }
-            if (w == current->pid_j)
+            else if (w == current->pid_j)
             {
                 printf("[%d] <Done>  %s\n", current->job_id, current->job_command);
                 remove_job_by_id(&root, current->job_id);
