@@ -20,6 +20,8 @@
 
 int wstatus;
 
+
+
 /*unused functions/helpers:
 
 
@@ -330,8 +332,8 @@ int pipeline_execution(char ***tokens_array)
             // printf("%s\n",**tokens_array);
         }
     }
-    execvp(**tokens_array, *tokens_array);
-
+    //execvp(**tokens_array, *tokens_array);
+    exit(0);
     return 0;
 }
 
@@ -351,8 +353,8 @@ char get_status_of_process(pid_t me){
     procfile = fopen(procfilename, "r");
     if (procfile == NULL)
     {
-        perror("Failed to open file.");
-        exit(EXIT_FAILURE);
+        perror("Failed to open file");
+        //exit(EXIT_FAILURE);
     }
     do
     {
@@ -547,14 +549,18 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    // printf("status: %c\n",get_status_of_process(pid));
+                    printf("status: %c\n",get_status_of_process(pid));
 
                     // printf("%d\n",pid);
                     waitpid(pid, &wstatus, WUNTRACED);
-                    // printf("status: %d\n", wstatus);
+                    printf("status: %d\n", wstatus);
+                } else {
+                    printf("status: %c\n",get_status_of_process(pid));
                 }
             }
         }
+        //kill zombie processes
+        //signal(SIGCHLD, SIG_IGN);
     }
     return 1;
 }
