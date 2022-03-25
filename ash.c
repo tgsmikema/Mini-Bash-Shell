@@ -35,6 +35,13 @@ typedef struct Job
 
 int last_job_id = 1;
 
+pid_t current_child_pid;
+
+// initialise empty linked list.
+Job *root = NULL;
+
+char *line2;
+
 pid_t w;
 
 //------------------------------------------------------------------------------------------------------------
@@ -125,7 +132,11 @@ int remove_job_by_pid(Job **root, pid_t p)
 
 void handle_sigtstp(int sig)
 {
-    printf("Stop not allowed\n");
+    // printf("%d",getpid());
+    kill(current_child_pid, SIGSTOP);
+
+    // kill(current_child_pid,SIGCONT);
+    // printf("Stop not allowed\n");
 }
 
 int size_of_star_star(char **starstar)
@@ -150,33 +161,45 @@ int size_of_triple_star(char ***triple_star)
     return count;
 }
 
-int execute_job_command(Job **root){
+int execute_job_command(Job **root)
+{
 
     // refresh all job status
-    for (Job *current = *root; current != NULL; current = current->next){
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
         current->job_status = get_status_of_process(current->pid_j);
     }
 
-    for (Job *current = *root; current != NULL; current = current->next){
-        char* state_word;
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        char *state_word;
         char j_status = current->job_status;
-        if (j_status == 'R'){
+        if (j_status == 'R')
+        {
             state_word = "Runnable";
-        } else if (j_status == 'S'){
+        }
+        else if (j_status == 'S')
+        {
             state_word = "Sleeping";
-        } else if (j_status == 'T'){
+        }
+        else if (j_status == 'T')
+        {
             state_word = "Stopped";
-        } else if (j_status == 'I'){
+        }
+        else if (j_status == 'I')
+        {
             state_word = "Idle";
-        } else if (j_status == 'Z'){
+        }
+        else if (j_status == 'Z')
+        {
             state_word = "Zombie";
-        } else {
+        }
+        else
+        {
             state_word = "";
         }
-        printf("[%d] <%s>\t%s\n",current->job_id,state_word,current->job_command);
+        printf("[%d] <%s>\t%s\n", current->job_id, state_word, current->job_command);
     }
-
-
 }
 
 char *read_cmd_line_into_string(void)
@@ -506,7 +529,6 @@ int main(int argc, char *argv[])
 
     int last_history_position = 0;
 
-
     //---------------------------------------------------------------------------------------------
     // this gets the current directory - home directory as program runs according to assignment.
     char home_directory[DIR_MAX_SIZE];
@@ -516,8 +538,6 @@ int main(int argc, char *argv[])
     }
     //---------------------------------------------------------------------------------------------
 
-    // initialise empty linked list.
-    Job *root = NULL;
     // append_end_list(&root,1,2,"hello",'C');
     // append_end_list(&root,2,3333,"hssssssello",'C');
     // remove_job_by_id(&root,2);
@@ -527,7 +547,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         ////////////////////////
-        //print_linked_list(&root);
+        // print_linked_list(&root);
         ////////////////////////
         printf("ash> ");
 
@@ -539,7 +559,7 @@ int main(int argc, char *argv[])
 
         char *line = read_cmd_line_into_string();
         ////////////////
-        char *line2 = strdup(line);
+        line2 = strdup(line);
         /////////////////
         int is_ampersand = is_command_including_amper(line);
 
@@ -562,7 +582,8 @@ int main(int argc, char *argv[])
 
         // checking if command is 'cd', if yes carry out cd command otherwise normal commands ------------------
 
-        if (strcmp(**tokens_array, "jobs") == 0){
+        if (strcmp(**tokens_array, "jobs") == 0)
+        {
             execute_job_command(&root);
         }
 
@@ -678,7 +699,7 @@ int main(int argc, char *argv[])
                 if (num_of_pipe_args == 1)
                 {
                     execvp(*tokens_array[0], *tokens_array);
-                    
+
                     printf("command error: No such file or directory.\n");
                     break;
                 }
@@ -699,42 +720,59 @@ int main(int argc, char *argv[])
                 // no ampersand!
                 if (is_ampersand == -1)
                 {
-                    //printf("status: %c\n",get_status_of_process(pid));
-                    // printf("%d\n",pid);
+                    // printf("status: %c\n",get_status_of_process(pid));
+                    //  printf("%d\n",pid);
+
+                    /////////////////////////////////////////////////////////////////
+                    current_child_pid = pid;
+                    ////////////////////////////////////////////////////////////////////
+
                     waitpid(pid, &wstatus, WUNTRACED);
+
+                    if(WIFSTOPPED(wstatus)){
+                    printf("\n[%d]\t%d\n", last_job_id, current_child_pid);
+
+                    // add job to job list
+
+                    append_end_list(&root, last_job_id, current_child_pid, line2, get_status_of_process(current_child_pid));
+
+                    // increament the last job number
+                    last_job_id++;
                     // printf("status: %d\n", wstatus);
+                    }
                 }
                 // have ampersand!
                 else
                 {
                     // print job number
-                    printf("[%d]\t%d\n",last_job_id,pid);
-                    
+                    printf("[%d]\t%d\n", last_job_id, pid);
+
                     // add job to job list
-                    append_end_list(&root,last_job_id,pid, line2,get_status_of_process(pid));
-                    
+                    append_end_list(&root, last_job_id, pid, line2, get_status_of_process(pid));
+
                     // increament the last job number
                     last_job_id++;
-
                 }
             }
         }
         // kill zombie processes
-        //signal(SIGCHLD, SIG_IGN);
+        // signal(SIGCHLD, SIG_IGN);
 
-        
-        //print_linked_list(&root);
+        // print_linked_list(&root);
 
         // check waitpid
-        for (Job *current = root; current != NULL; current = current->next){
+        for (Job *current = root; current != NULL; current = current->next)
+        {
             int status;
-            w = waitpid(current->pid_j,&status,WNOHANG);
-            if (w == -1){
+            w = waitpid(current->pid_j, &status, WNOHANG);
+            if (w == -1)
+            {
                 perror("waitpid");
             }
-            if(w == current->pid_j){
-                printf("[%d] <Done>  %s\n",current->job_id,current->job_command);
-                remove_job_by_id(&root,current->job_id);
+            if (w == current->pid_j)
+            {
+                printf("[%d] <Done>  %s\n", current->job_id, current->job_command);
+                remove_job_by_id(&root, current->job_id);
             }
         }
     }
