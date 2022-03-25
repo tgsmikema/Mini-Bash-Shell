@@ -335,6 +335,37 @@ int pipeline_execution(char ***tokens_array)
     return 0;
 }
 
+/*This function is refered from the status.c file shared on the tutorial*/
+char get_status_of_process(pid_t me){
+
+    char c;
+    char pidtext[10];
+    char procfilename[100];
+    FILE *procfile;
+
+    sprintf(pidtext, "%d", me);
+    strcpy(procfilename, "/proc/");
+    strcat(procfilename, pidtext);
+    strcat(procfilename, "/stat");
+    //printf("The status file is %s\n", procfilename);
+    procfile = fopen(procfilename, "r");
+    if (procfile == NULL)
+    {
+        perror("Failed to open file.");
+        exit(EXIT_FAILURE);
+    }
+    do
+    {
+        c = fgetc(procfile);
+    } while (c != ')');
+    fgetc(procfile);
+    c = fgetc(procfile);
+    //printf("The status of this process is %c\n", c);
+    fclose(procfile);
+
+    return c;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -358,12 +389,9 @@ int main(int argc, char *argv[])
     while (1)
     {
 
-        
-
         printf("ash> ");
 
         sigaction(SIGTSTP, &sa, NULL);
-        
 
         // isatty() returns 1 if input is from stdin, or 0 if input is from file
         // if from stdin, then call read_command_line_from_input() function,
@@ -371,8 +399,6 @@ int main(int argc, char *argv[])
 
         char *line = read_cmd_line_into_string();
         int is_ampersand = is_command_including_amper(line);
-
-       
 
         if (isatty(STDIN_FILENO) != 1)
         {
@@ -387,8 +413,8 @@ int main(int argc, char *argv[])
         char ***tokens_array = convert_piped_string_into_tokens_array(line);
 
         int num_of_pipe_args = size_of_triple_star(tokens_array);
-
-        // checking if command is 'cd', if yes carry out cd command otherwise normal commands
+        
+        // checking if command is 'cd', if yes carry out cd command otherwise normal commands ------------------
 
         if (strcmp(**tokens_array, "cd") == 0)
         {
@@ -396,7 +422,7 @@ int main(int argc, char *argv[])
             {
                 perror("Directory Error");
             }
-            // checking if command is 'history'.
+            // checking if command is 'history'. -------------------------------------------------------------------
         }
         else if ((strcmp(**tokens_array, "history") == 0) || (strcmp(**tokens_array, "h") == 0))
         {
@@ -454,6 +480,7 @@ int main(int argc, char *argv[])
                     }
                     execute_single_command(split_string_into_tokens(new_line));
                 }
+                // normal command (not built in) -------------------------------------------------------------------
                 else
                 {
                     char ***tokens_array = convert_piped_string_into_tokens_array(new_line);
@@ -474,6 +501,7 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
+                        // only wait when there is no &.
                         if (is_ampersand == -1)
                         {
                             // printf("%d\n%d\n",pid,getppid());
@@ -519,13 +547,12 @@ int main(int argc, char *argv[])
             {
                 if (is_ampersand == -1)
                 {
-                    // printf("%d\n%d\n",pid,getppid());
+                    // printf("status: %c\n",get_status_of_process(pid));
+
+                    // printf("%d\n",pid);
                     waitpid(pid, &wstatus, WUNTRACED);
                     // printf("status: %d\n", wstatus);
-                    // kill(pid, SIGKILL);
-                   
                 }
-
             }
         }
     }
