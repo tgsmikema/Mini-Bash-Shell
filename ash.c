@@ -642,25 +642,103 @@ int main(int argc, char *argv[])
         {
             execute_job_command(&root);
         }
-        else if (strcmp(**tokens_array, "fg") == 0)
+        else if ((strcmp(**tokens_array, "fg") == 0) || (strcmp(**tokens_array, "bg") == 0) || (strcmp(**tokens_array, "kill") == 0))
         {
-            //-------------------------------------------------------------------------------
-            int j_id = find_job_id_of_last_stopped(&root);
-            pid_t curr = (find_process_id_with_job_id(&root, j_id));
-            char *com = find_command_with_job_id(&root, j_id);
-            int status;
-            kill(curr, SIGCONT);
-            w = waitpid(curr, &status, WUNTRACED);
-            if (w == curr && w != -1)
+            int args_size = size_of_star_star(*tokens_array);
+            // allocate selection variable to diffrentiate between commands.
+            int com_select;
+            if ((strcmp(**tokens_array, "fg") == 0))
             {
-                if (WIFEXITED(status))
-                {
+                com_select = FG;
+            }
+            else if ((strcmp(**tokens_array, "bg") == 0))
+            {
+                com_select = BG;
+            }
+            else if ((strcmp(**tokens_array, "kill") == 0))
+            {
+                com_select = KILL;
+            }
 
-                    printf("[%d] <Done>  %s\n", j_id, com);
-                    remove_job_by_id(&root, j_id);
+            if (args_size > 2)
+            {
+                printf("fg/bg/kill parameter error\n");
+                continue;
+            }
+            else if (args_size == 1)
+            {
+
+                //---------------------No parameter--------------------------------
+
+                int j_id = find_job_id_of_last_stopped(&root);
+                if (j_id == -1)
+                {
+                    printf("There are no stopped jobs!\n");
+                    continue;
+                }
+                pid_t curr = (find_process_id_with_job_id(&root, j_id));
+                char *com = find_command_with_job_id(&root, j_id);
+                int status;
+                if (com_select == FG)
+                {
+                    kill(curr, SIGCONT);
+                    w = waitpid(curr, &status, WUNTRACED);
+                    if (w == curr && w != -1)
+                    {
+                        if (WIFEXITED(status))
+                        {
+                            printf("[%d] <Done>  %s\n", j_id, com);
+                            remove_job_by_id(&root, j_id);
+                        }
+                    }
+                }
+                else if (com_select == BG)
+                {
+                    kill(curr, SIGCONT);
+                }
+                else if (com_select == KILL)
+                {
+                    kill(curr, SIGKILL);
+                }
+
+                //-------------------------------------------------------------------------------
+            }
+            //---------------------Have job id parameter--------------------------------
+            else
+            {
+                int selected_job_id = atoi(*(*(tokens_array) + 1));
+                // printf("%d\n",selected_job_id);
+                pid_t curr = (find_process_id_with_job_id(&root, selected_job_id));
+                if (curr == -1)
+                {
+                    printf("Cannot find selected job!\n");
+                    continue;
+                }
+
+                char *com = find_command_with_job_id(&root, selected_job_id);
+                int status;
+                if (com_select == FG)
+                {
+                    kill(curr, SIGCONT);
+                    w = waitpid(curr, &status, WUNTRACED);
+                    if (w == curr && w != -1)
+                    {
+                        if (WIFEXITED(status))
+                        {
+                            printf("[%d] <Done>  %s\n", selected_job_id, com);
+                            remove_job_by_id(&root, selected_job_id);
+                        }
+                    }
+                }
+                else if (com_select == BG)
+                {
+                    kill(curr, SIGCONT);
+                }
+                else if (com_select == KILL)
+                {
+                    kill(curr, SIGKILL);
                 }
             }
-            //-------------------------------------------------------------------------------
         }
 
         else if (strcmp(**tokens_array, "cd") == 0)
