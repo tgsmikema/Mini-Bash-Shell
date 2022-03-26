@@ -537,8 +537,8 @@ int pipeline_execution(char ***tokens_array)
             // printf("%s\n",**tokens_array);
         }
     }
-    // execvp(**tokens_array, *tokens_array);
-    exit(0);
+    // not sure why it does but fixes the infinite printing error ./ash < test4
+    execvp(**tokens_array, *tokens_array);
     return 0;
 }
 
