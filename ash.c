@@ -203,7 +203,11 @@ int find_job_id_of_last_stopped(Job **root)
 void handle_sigtstp(int sig)
 {
     // printf("%d",getpid());
+    
+    if (current_child_pid != 0){
     kill(current_child_pid, SIGSTOP);
+    signal(SIGTSTP,SIG_IGN);
+    } 
 
     // kill(current_child_pid,SIGCONT);
     // printf("Stop not allowed\n");
@@ -593,7 +597,9 @@ int main(int argc, char *argv[])
 
     struct sigaction sa;
     sa.sa_handler = &handle_sigtstp;
-    sa.sa_flags = SA_RESTART;
+    //sa.sa_flags = SA_RESTART;
+
+    signal(SIGTSTP,SIG_IGN);
 
     char **history_list = (char **)malloc((100) * sizeof(char *));
 
@@ -621,7 +627,7 @@ int main(int argc, char *argv[])
         ////////////////////////
         printf("ash> ");
 
-        sigaction(SIGTSTP, &sa, NULL);
+        
 
         // isatty() returns 1 if input is from stdin, or 0 if input is from file
         // if from stdin, then call read_command_line_from_input() function,
@@ -695,6 +701,7 @@ int main(int argc, char *argv[])
                 int status;
                 if (com_select == FG)
                 {
+                    signal(SIGTSTP, &handle_sigtstp);
                     kill(curr, SIGCONT);
                     w = waitpid(curr, &status, WUNTRACED);
                     if (w == curr && w != -1)
@@ -708,6 +715,7 @@ int main(int argc, char *argv[])
                 }
                 else if (com_select == BG)
                 {
+                    
                     kill(curr, SIGCONT);
                 }
                 else if (com_select == KILL)
@@ -863,6 +871,9 @@ int main(int argc, char *argv[])
             if (pid == 0)
             {
 
+                //printf("%d\n",getpid());
+                //current_child_pid = getpid();
+                
                 // if single
                 if (num_of_pipe_args == 1)
                 {
@@ -888,6 +899,7 @@ int main(int argc, char *argv[])
                 // no ampersand!
                 if (is_ampersand == -1)
                 {
+                    signal(SIGTSTP, &handle_sigtstp);
                     // printf("status: %c\n",get_status_of_process(pid));
                     //  printf("%d\n",pid);
 
@@ -915,6 +927,7 @@ int main(int argc, char *argv[])
                 // have ampersand!
                 else
                 {
+                    signal(SIGTSTP,SIG_IGN);
 					if (how_many_jobs_are_current(&root) == 0)
                         {
                             last_job_id = 1;
