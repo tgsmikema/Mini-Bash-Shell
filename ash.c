@@ -49,6 +49,20 @@ char *line2;
 pid_t w;
 
 //------------------------------------------------------------------------------------------------------------
+
+int how_many_jobs_are_current(Job **root)
+{
+    int num_of_jobs = 0;
+    for (Job *current = *root; current != NULL; current = current->next)
+    {
+        if (current->job_id != 0)
+        {
+            num_of_jobs++;
+        }
+    }
+    return num_of_jobs;
+}
+
 int append_end_list(Job **root, int j_id, pid_t p, char *j_command, char j_status)
 {
     Job *new_job = malloc(sizeof(Job));
@@ -885,6 +899,11 @@ int main(int argc, char *argv[])
 
                     if (WIFSTOPPED(wstatus))
                     {
+						if (how_many_jobs_are_current(&root) == 0)
+                        {
+                            last_job_id = 1;
+                        }
+						
                         printf("\n[%d]\t%d\n", last_job_id, current_child_pid);
                         // add job to job list
                         append_end_list(&root, last_job_id, current_child_pid, line2, get_status_of_process(current_child_pid));
@@ -896,6 +915,11 @@ int main(int argc, char *argv[])
                 // have ampersand!
                 else
                 {
+					if (how_many_jobs_are_current(&root) == 0)
+                        {
+                            last_job_id = 1;
+                        }
+					
                     // print job number
                     printf("[%d]\t%d\n", last_job_id, pid);
 
